@@ -14,11 +14,7 @@ const MOVE1: usize = 1;
 const MOVE2: usize = 2;
 
 fn _nonnegative_difference(center_j: usize, half_delta: usize) -> usize {
-    if half_delta > center_j {
-        0
-    } else {
-        center_j - half_delta
-    }
+    center_j.saturating_sub(half_delta)
 }
 
 fn _three_way_argmin(cost0: f64, cost1: f64, cost2: f64) -> usize {
