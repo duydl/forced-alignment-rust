@@ -2,6 +2,7 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use ndarray::{Array2, Array1, s};
 use std::f64;
+use std::time::Instant;
 
 struct PathCell {
     i: usize,
@@ -177,11 +178,16 @@ fn _compute_best_path(
 /// Implementing compute_best_path in Rust
 #[pyfunction]
 fn compute_best_path(mfcc1: Vec<Vec<f64>>, mfcc2: Vec<Vec<f64>>, delta: usize) -> PyResult<Vec<(usize, usize)>> {
+
+    let start = Instant::now();
     let mfcc1_array = Array2::from_shape_vec((mfcc1.len(), mfcc1[0].len()), mfcc1.into_iter().flatten().collect())
         .map_err(|_| PyErr::new::<pyo3::exceptions::PyValueError, _>("Failed to create mfcc1 array"))?;
     let mfcc2_array = Array2::from_shape_vec((mfcc2.len(), mfcc2[0].len()), mfcc2.into_iter().flatten().collect())
         .map_err(|_| PyErr::new::<pyo3::exceptions::PyValueError, _>("Failed to create mfcc2 array"))?;
+    let duration = start.elapsed();
+    println!("Time 1: {:?}", duration);
 
+    let start = Instant::now();
     let n = mfcc1_array.shape()[1];
     let m = mfcc2_array.shape()[1];
 
@@ -190,23 +196,39 @@ fn compute_best_path(mfcc1: Vec<Vec<f64>>, mfcc2: Vec<Vec<f64>>, delta: usize) -
     let mut cost_matrix = Array2::<f64>::zeros((n, delta));
     let mut centers = vec![0; n];
     // let mut best_path = Vec::new();
+    let duration = start.elapsed();
+    println!("Time 2: {:?}", duration);
 
+    let start = Instant::now();
     _compute_cost_matrix(&mfcc1_array, &mfcc2_array, delta, &mut cost_matrix, &mut centers)
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e))?;
 
+    let duration = start.elapsed();
+    println!("Time 3: {:?}", duration);
+
+    let start = Instant::now();
     _compute_accumulated_cost_matrix_in_place(&mut cost_matrix, &centers)
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e))?;
+    let duration = start.elapsed();
+    println!("Time 4: {:?}", duration);
 
+    let start = Instant::now();
     let best_path = _compute_best_path(&cost_matrix, &centers, n, delta)
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e))?;
+    let duration = start.elapsed();
+    println!("Time 5: {:?}", duration);
 
+    let start = Instant::now();
     let result: Vec<(usize, usize)> = best_path.into_iter().map(|cell| (cell.i, cell.j)).collect();
+    let duration = start.elapsed();
+    println!("Time 6: {:?}", duration);
+
     Ok(result)
 }
 
 /// Module definition
 #[pymodule]
-fn aeneas_rust(py: Python, m: &PyModule) -> PyResult<()> {
+fn aeneas_rust(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compute_best_path, m)?)?;
     Ok(())
 }
