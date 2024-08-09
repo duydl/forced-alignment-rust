@@ -7,10 +7,16 @@ edition = "2021"
 name = "aeneas_rust"
 crate-type = ["cdylib"]
 
+[workspace]
+members = [
+    "src/mfcc",
+]
+
 [dependencies.pyo3]
 version = "0.15.1"
 features = ["extension-module"]
 
 [dependencies]
 ndarray = "0.15"
-
+rustfft = "6.0"
+mfcc = { path = "src/mfcc" }

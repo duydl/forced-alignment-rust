@@ -9,11 +9,37 @@ mod tts_engines;
 use tts_engines::TTSEngine;
 use tts_engines::espeak_ng::EspeakNg;
 
-pub mod mfcc;
 pub use mfcc::{compute_mfcc, MfccConfig};
 
 #[pyfunction]
-fn text_to_speech(engine: &str, text: String, output_path: String) -> PyResult<()> {
+fn compute_mfcc_py() -> PyResult<Vec<Vec<f64>>> {
+    // Example audio data (replace with actual audio loading logic)
+    let audio_data = vec![1.0; 16000]; // Placeholder for actual audio data
+    
+    // Configuration for MFCC
+    let config = MfccConfig {
+        sample_rate: 16000,
+        num_filters: 26,
+        num_coefficients: 13,
+        fft_size: 512,
+        low_freq: 0.0,
+        high_freq: 8000.0,
+        pre_emphasis: 0.97,
+        window_length: 0.025,
+        window_shift: 0.01,
+    };
+    
+    // Compute MFCCs
+    let mfccs = compute_mfcc(&audio_data, config);
+    
+    let result: Vec<Vec<f64>> = mfccs.into_iter().map(|arr| arr.to_vec()).collect();
+    
+    Ok(result)
+}
+
+
+#[pyfunction]
+fn text_to_speech_py(engine: &str, text: String, output_path: String) -> PyResult<()> {
     let tts: Box<dyn TTSEngine> = match engine {
         "espeak-ng" => Box::new(EspeakNg::new()),
         _ => return Err(pyo3::exceptions::PyValueError::new_err("Unsupported TTS engine")),
@@ -25,9 +51,8 @@ fn text_to_speech(engine: &str, text: String, output_path: String) -> PyResult<(
     Ok(())
 }
 
-
 #[pyfunction]
-fn compute_best_path(mfcc1: Vec<Vec<f64>>, mfcc2: Vec<Vec<f64>>, delta: usize) -> PyResult<Vec<(usize, usize)>> {
+fn compute_best_path_py(mfcc1: Vec<Vec<f64>>, mfcc2: Vec<Vec<f64>>, delta: usize) -> PyResult<Vec<(usize, usize)>> {
     let start = Instant::now();
     let mfcc1_array = Array2::from_shape_vec((mfcc1.len(), mfcc1[0].len()), mfcc1.into_iter().flatten().collect())
         .map_err(|_| PyErr::new::<pyo3::exceptions::PyValueError, _>("Failed to create mfcc1 array"))?;
@@ -76,7 +101,8 @@ fn compute_best_path(mfcc1: Vec<Vec<f64>>, mfcc2: Vec<Vec<f64>>, delta: usize) -
 
 #[pymodule]
 fn aeneas_rust(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(compute_best_path, m)?)?;
-    m.add_function(wrap_pyfunction!(text_to_speech, m)?)?;
+    m.add_function(wrap_pyfunction!(compute_best_path_py, m)?)?;
+    m.add_function(wrap_pyfunction!(text_to_speech_py, m)?)?;
+    m.add_function(wrap_pyfunction!(compute_mfcc_py, m)?)?;
     Ok(())
 }

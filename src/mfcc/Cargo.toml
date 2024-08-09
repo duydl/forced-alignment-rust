@@ -1,0 +1,10 @@
+[package]
+name = "mfcc"
+version = "0.1.0"
+
+[lib]
+path = "src/mod.rs"
+
+[dependencies]
+ndarray = "0.15"
+rustfft = "6.0"
